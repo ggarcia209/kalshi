@@ -168,15 +168,14 @@ func (c *Client) Markets(
 ) (*MarketsResponse, error) {
 	var resp MarketsResponse
 
-	err := c.request(ctx, request{
+	if err := c.request(ctx, request{
 		Method:       "GET",
 		Endpoint:     "markets",
 		QueryParams:  req,
 		JSONRequest:  nil,
 		JSONResponse: &resp,
-	})
-	if err != nil {
-		return nil, err
+	}); err != nil {
+		return nil, fmt.Errorf("c.request: %w", err)
 	}
 
 	return &resp, nil
@@ -210,22 +209,21 @@ type TradesRequest struct {
 	MaxTS  int    `url:"max_ts,omitempty"`
 }
 
-// Trades is described here:
+// GetTrades is described here:
 // https://trading-api.readme.io/reference/gettrades.
-func (c *Client) Trades(
+func (c *Client) GetTrades(
 	ctx context.Context,
 	req TradesRequest,
 ) (*TradesResponse, error) {
 	var resp TradesResponse
 
-	err := c.request(ctx, request{
+	if err := c.request(ctx, request{
 		Method:       "GET",
 		Endpoint:     "markets/trades",
 		QueryParams:  req,
 		JSONResponse: &resp,
-	})
-	if err != nil {
-		return nil, err
+	}); err != nil {
+		return nil, fmt.Errorf("c.request: %w", err)
 	}
 
 	return &resp, nil
@@ -328,13 +326,12 @@ func (c *Client) Series(ctx context.Context, seriesTicker string) (*Series, erro
 	var resp struct {
 		Series Series `json:"series"`
 	}
-	err := c.request(ctx, request{
+	if err := c.request(ctx, request{
 		Method:       "GET",
 		Endpoint:     fmt.Sprintf("series/%s", seriesTicker),
 		JSONResponse: &resp,
-	})
-	if err != nil {
-		return nil, err
+	}); err != nil {
+		return nil, fmt.Errorf("c.request: %w", err)
 	}
 	return &resp.Series, nil
 }

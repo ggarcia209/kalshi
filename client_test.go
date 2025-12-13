@@ -29,9 +29,13 @@ func testClient(t *testing.T) *Client {
 		t.Fatalf("no $%s provided", passEnv)
 	}
 
-	c := New(APIDemoURL)
+	c, err := NewClient(APIDemoURL)
+	if err != nil {
+		t.Fatalf("NewClient: %v", err)
+	}
+
 	c.WriteRatelimit = rateLimit
-	_, err := c.Login(ctx, LoginRequest{
+	_, err = c.Login(ctx, LoginRequest{
 		Email:    email,
 		Password: password,
 	})

@@ -43,7 +43,7 @@ func TestTrades(t *testing.T) {
 
 	market := highestVolumeMarkets(ctx, t, client)[0]
 
-	_, err := client.Trades(ctx, TradesRequest{
+	_, err := client.GetTrades(ctx, TradesRequest{
 		Ticker: market.Ticker,
 	})
 	require.NoError(t, err)

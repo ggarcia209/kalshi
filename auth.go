@@ -1,6 +1,9 @@
 package kalshi
 
-import "context"
+import (
+	"context"
+	"fmt"
+)
 
 // LoginRequest is described here:
 // https://trading-api.readme.io/reference/login.
@@ -23,14 +26,13 @@ type LoginResponse struct {
 // token in the cookie state.
 func (c *Client) Login(ctx context.Context, req LoginRequest) (*LoginResponse, error) {
 	var resp LoginResponse
-	err := c.request(ctx, request{
+	if err := c.request(ctx, request{
 		Method:       "POST",
 		Endpoint:     "login",
 		JSONRequest:  req,
 		JSONResponse: &resp,
-	})
-	if err != nil {
-		return nil, err
+	}); err != nil {
+		return nil, fmt.Errorf("c.request: %w", err)
 	}
 	return &resp, nil
 }
@@ -38,10 +40,14 @@ func (c *Client) Login(ctx context.Context, req LoginRequest) (*LoginResponse, e
 // Logout is described here:
 // https://trading-api.readme.io/reference/logout.
 func (c *Client) Logout(ctx context.Context) error {
-	return c.request(ctx, request{
+	if err := c.request(ctx, request{
 		Method:       "POST",
 		Endpoint:     "logout",
 		JSONRequest:  nil,
 		JSONResponse: nil,
-	})
+	}); err != nil {
+		return fmt.Errorf("c.request: %w", err)
+	}
+
+	return nil
 }

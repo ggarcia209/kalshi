@@ -15,7 +15,7 @@ func TestBalance(t *testing.T) {
 
 	client := testClient(t)
 
-	b, err := client.Balance(ctx)
+	b, err := client.GetBalance(ctx)
 	require.NoError(t, err)
 	require.Greater(t, b, 0)
 	// Sanity-check
@@ -48,7 +48,7 @@ func TestOrder(t *testing.T) {
 		}
 	}
 
-	orders, err := client.Orders(ctx, OrdersRequest{
+	orders, err := client.GetOrders(ctx, OrdersRequest{
 		Status: Resting,
 		Ticker: testMarket.Ticker,
 	})
@@ -74,7 +74,7 @@ func TestOrder(t *testing.T) {
 		require.Equal(t, Executed, order.Status)
 		t.Run("Fills", func(t *testing.T) {
 			t.Skip("Doesn't seem to work?")
-			fills, err := client.Fills(ctx, FillsRequest{
+			fills, err := client.GetFills(ctx, FillsRequest{
 				OrderID: order.OrderID,
 			})
 			require.NoError(t, err)
@@ -100,13 +100,13 @@ func TestOrder(t *testing.T) {
 
 		t.Run("Order", func(t *testing.T) {
 			t.Parallel()
-			order, err := client.Order(ctx, order.OrderID)
+			order, err := client.GetOrder(ctx, order.OrderID)
 			require.NoError(t, err)
 			require.NotZero(t, order)
 		})
 
 		require.Eventually(t, func() bool {
-			orders, err = client.Orders(ctx, OrdersRequest{
+			orders, err = client.GetOrders(ctx, OrdersRequest{
 				Status: Resting,
 				Ticker: testMarket.Ticker,
 			})
@@ -119,7 +119,7 @@ func TestOrder(t *testing.T) {
 		}
 
 		t.Run("Decrease", func(t *testing.T) {
-			order, err := client.Order(ctx, order.OrderID)
+			order, err := client.GetOrder(ctx, order.OrderID)
 			require.NoError(t, err)
 			require.Equal(t, order.RemainingCount, 2)
 
@@ -131,7 +131,7 @@ func TestOrder(t *testing.T) {
 		})
 
 		t.Run("Positions", func(t *testing.T) {
-			resp, err := client.Positions(ctx, PositionsRequest{})
+			resp, err := client.GetPositions(ctx, PositionsRequest{})
 			require.NoError(t, err)
 			require.Greater(t, len(resp.EventPositions), 0)
 			require.Greater(t, len(resp.MarketPositions), 0)
@@ -152,6 +152,6 @@ func TestSettlements(t *testing.T) {
 
 	ctx := context.Background()
 
-	_, err := client.Settlements(ctx, SettlementsRequest{})
+	_, err := client.GetSettlements(ctx, SettlementsRequest{})
 	require.NoError(t, err)
 }
