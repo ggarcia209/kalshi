@@ -1,6 +1,8 @@
 module github.com/ammario/kalshi
 
-go 1.20
+go 1.23.0
+
+toolchain go1.23.4
 
 require github.com/google/uuid v1.3.0
 
@@ -24,7 +26,8 @@ require (
 
 require (
 	github.com/google/go-querystring v1.1.0
-	github.com/stretchr/testify v1.8.1
+	github.com/stretchr/testify v1.9.0
+	go.uber.org/mock v0.6.0
 	golang.org/x/time v0.0.0-20220609170525-579cf78fd858
 	nhooyr.io/websocket v1.8.7
 )
