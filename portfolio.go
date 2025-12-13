@@ -120,14 +120,13 @@ func (c *Client) CreateOrder(ctx context.Context, req CreateOrderRequest) (*Orde
 	var resp struct {
 		Order Order `json:"order"`
 	}
-	err := c.request(ctx, request{
+	if err := c.request(ctx, request{
 		Method:       "POST",
 		Endpoint:     "portfolio/orders",
 		JSONRequest:  req,
 		JSONResponse: &resp,
-	})
-	if err != nil {
-		return nil, err
+	}); err != nil {
+		return nil, fmt.Errorf("c.request: %w", err)
 	}
 
 	return &resp.Order, nil
@@ -188,33 +187,31 @@ type OrdersResponse struct {
 
 // Orders is described here:
 // https://trading-api.readme.io/reference/getorders
-func (c *Client) Orders(ctx context.Context, req OrdersRequest) (*OrdersResponse, error) {
-	var resp OrdersResponse
-	err := c.request(ctx, request{
+func (c *Client) GetOrders(ctx context.Context, req OrdersRequest) (*OrdersResponse, error) {
+	var resp = new(OrdersResponse)
+	if err := c.request(ctx, request{
 		Method:       "GET",
 		Endpoint:     "portfolio/orders",
 		QueryParams:  req,
-		JSONResponse: &resp,
-	})
-	if err != nil {
-		return nil, err
+		JSONResponse: resp,
+	}); err != nil {
+		return nil, fmt.Errorf("c.request: %w", err)
 	}
-	return &resp, nil
+	return resp, nil
 }
 
 // Balance is described here:
 // https://trading-api.readme.io/reference/getbalance.
-func (c *Client) Balance(ctx context.Context) (Cents, error) {
+func (c *Client) GetBalance(ctx context.Context) (Cents, error) {
 	var resp struct {
 		Balance Cents `json:"balance"`
 	}
-	err := c.request(ctx, request{
+	if err := c.request(ctx, request{
 		Method:       "GET",
 		Endpoint:     "portfolio/balance",
 		JSONResponse: &resp,
-	})
-	if err != nil {
-		return -1, err
+	}); err != nil {
+		return 0, fmt.Errorf("c.request: %w", err)
 	}
 	return resp.Balance, nil
 }
@@ -253,7 +250,7 @@ type FillsResponse struct {
 
 // Fills is described here:
 // https://trading-api.readme.io/reference/getfills.
-func (c *Client) Fills(ctx context.Context, req FillsRequest) (*FillsResponse, error) {
+func (c *Client) GetFills(ctx context.Context, req FillsRequest) (*FillsResponse, error) {
 	var resp FillsResponse
 	err := c.request(ctx, request{
 		Method:       "GET",
@@ -267,19 +264,18 @@ func (c *Client) Fills(ctx context.Context, req FillsRequest) (*FillsResponse, e
 	return &resp, nil
 }
 
-// Order is described here:
+// GetOrder is described here:
 // https://trading-api.readme.io/reference/getorder.
-func (c *Client) Order(ctx context.Context, orderID string) (*Order, error) {
+func (c *Client) GetOrder(ctx context.Context, orderID string) (*Order, error) {
 	var resp struct {
 		Order Order `json:"order"`
 	}
-	err := c.request(ctx, request{
+	if err := c.request(ctx, request{
 		Method:       "GET",
 		Endpoint:     "portfolio/orders/" + orderID,
 		JSONResponse: &resp,
-	})
-	if err != nil {
-		return nil, err
+	}); err != nil {
+		return nil, fmt.Errorf("c.request: %w", err)
 	}
 	return &resp.Order, nil
 }
@@ -290,13 +286,12 @@ func (c *Client) CancelOrder(ctx context.Context, orderID string) (*Order, error
 	var resp struct {
 		Order Order `json:"order"`
 	}
-	err := c.request(ctx, request{
+	if err := c.request(ctx, request{
 		Method:       "DELETE",
 		Endpoint:     "portfolio/orders/" + orderID,
 		JSONResponse: &resp,
-	})
-	if err != nil {
-		return nil, err
+	}); err != nil {
+		return nil, fmt.Errorf("c.request: %w", err)
 	}
 	return &resp.Order, nil
 }
@@ -419,18 +414,17 @@ type PositionsResponse struct {
 	MarketPositions []MarketPosition `json:"market_positions"`
 }
 
-// Positions is described here:
+// GetPositions is described here:
 // https://trading-api.readme.io/reference/getpositions.
-func (c *Client) Positions(ctx context.Context, req PositionsRequest) (*PositionsResponse, error) {
+func (c *Client) GetPositions(ctx context.Context, req PositionsRequest) (*PositionsResponse, error) {
 	var resp PositionsResponse
-	err := c.request(ctx, request{
+	if err := c.request(ctx, request{
 		Method:       "GET",
 		Endpoint:     "portfolio/positions",
 		QueryParams:  req,
 		JSONResponse: &resp,
-	})
-	if err != nil {
-		return nil, err
+	}); err != nil {
+		return nil, fmt.Errorf("c.request: %w", err)
 	}
 	return &resp, nil
 }
@@ -461,18 +455,17 @@ type SettlementsResponse struct {
 	Settlements []Settlement `json:"settlements"`
 }
 
-// Settlements is described here:
+// GetSettlements is described here:
 // https://trading-api.readme.io/reference/getportfoliosettlements.
-func (c *Client) Settlements(ctx context.Context, req SettlementsRequest) (*SettlementsResponse, error) {
+func (c *Client) GetSettlements(ctx context.Context, req SettlementsRequest) (*SettlementsResponse, error) {
 	var resp SettlementsResponse
-	err := c.request(ctx, request{
+	if err := c.request(ctx, request{
 		Method:       "GET",
 		Endpoint:     "portfolio/settlements",
 		QueryParams:  req,
 		JSONResponse: &resp,
-	})
-	if err != nil {
-		return nil, err
+	}); err != nil {
+		return nil, fmt.Errorf("c.request: %w", err)
 	}
 	return &resp, nil
 }

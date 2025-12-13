@@ -8,9 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/cookiejar"
-	"net/http/httputil"
 	"net/url"
-	"os"
 	"strconv"
 	"time"
 
@@ -69,12 +67,12 @@ func jsonRequestHeaders(
 ) error {
 	reqBodyByt, err := json.Marshal(jsonReq)
 	if err != nil {
-		return err
+		return fmt.Errorf("json.Marshal: %w", err)
 	}
 
-	req, err := http.NewRequest(method, reqURL, bytes.NewReader(reqBodyByt))
+	req, err := http.NewRequestWithContext(ctx, method, reqURL, bytes.NewReader(reqBodyByt))
 	if err != nil {
-		return err
+		return fmt.Errorf("http.NewRequestWithContext: %w", err)
 	}
 	if headers != nil {
 		req.Header = headers
@@ -84,45 +82,23 @@ func jsonRequestHeaders(
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return err
+		return fmt.Errorf("client.Do: %w", err)
 	}
 	defer resp.Body.Close()
 
 	respBodyByt, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return err
+		return fmt.Errorf("io.ReadAll: %w", err)
 	}
-
-	reqDump, err := httputil.DumpRequest(req, false)
-	if err != nil {
-		return err
-	}
-
-	respDump, err := httputil.DumpResponse(resp, false)
-	if err != nil {
-		return fmt.Errorf("dump: %w", err)
-	}
-	dumpErr := fmt.Sprintf("Request\n%s%s\nResponse\n%s%s",
-		reqDump,
-		reqBodyByt,
-		respDump,
-		respBodyByt,
-	)
 
 	if resp.StatusCode >= 400 {
-		return fmt.Errorf(
-			"unexpected status: %s\n%s",
-			resp.Status,
-			dumpErr,
-		)
-	} else if os.Getenv("KALSHI_HTTP_DEBUG") != "" {
-		fmt.Printf("REQUEST DUMP\n%s\n", dumpErr)
+		return NewHttpError(resp.StatusCode, string(respBodyByt))
 	}
 
 	if client.Jar != nil {
 		u, err := url.Parse(reqURL)
 		if err != nil {
-			return err
+			return fmt.Errorf("url.Parse: %w", err)
 		}
 		client.Jar.SetCookies(u, resp.Cookies())
 	}
@@ -130,7 +106,7 @@ func jsonRequestHeaders(
 	if jsonResp != nil {
 		err = json.Unmarshal(respBodyByt, jsonResp)
 		if err != nil {
-			return fmt.Errorf("unmarshal: %w\n%s", err, dumpErr)
+			return fmt.Errorf("json.Unmarshal: %w", err)
 		}
 	}
 	return nil
@@ -141,13 +117,13 @@ func (c *Client) request(
 ) error {
 	u, err := url.Parse(c.BaseURL + r.Endpoint)
 	if err != nil {
-		return err
+		return fmt.Errorf("url.Parse: %w", err)
 	}
 
 	if r.QueryParams != nil {
 		v, err := query.Values(r.QueryParams)
 		if err != nil {
-			return err
+			return fmt.Errorf("query.Values: %w", err)
 		}
 		u.RawQuery = v.Encode()
 	}
@@ -156,21 +132,25 @@ func (c *Client) request(
 	// fast to be meaningful!
 	if r.Method == "GET" {
 		if !c.ReadRateLimit.Allow() {
-			return fmt.Errorf("read ratelimit exceeded")
+			return ErrReadLimitExceeded
 		}
 	} else {
 		if !c.WriteRatelimit.Allow() {
-			return fmt.Errorf("write ratelimit exceeded")
+			return ErrWriteLimitExceeded
 		}
 	}
 
-	return jsonRequestHeaders(
+	if err := jsonRequestHeaders(
 		ctx,
 		c.httpClient,
 		nil,
 		r.Method,
 		u.String(), r.JSONRequest, r.JSONResponse,
-	)
+	); err != nil {
+		return fmt.Errorf("jsonRequestHeaders: %w", err)
+	}
+
+	return nil
 }
 
 // Timestamp represents a POSIX Timestamp in seconds.
@@ -197,12 +177,12 @@ func basicRateLimit() *rate.Limiter {
 	return rate.NewLimiter(rate.Every(time.Second), 10)
 }
 
-// New creates a new Kalshi client. Login must be called to authenticate the
+// NewClient creates a new Kalshi client. Login must be called to authenticate the
 // the client before any other request.
-func New(baseURL string) *Client {
+func NewClient(baseURL string) (*Client, error) {
 	jar, err := cookiejar.New(nil)
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("cookiejar.New: %w", err)
 	}
 
 	c := &Client{
@@ -216,7 +196,7 @@ func New(baseURL string) *Client {
 		ReadRateLimit:  basicRateLimit(),
 	}
 
-	return c
+	return c, nil
 }
 
 // Time is a time.Time that tolerates additional '"' characters.
@@ -232,7 +212,7 @@ func (t *Time) UnmarshalJSON(b []byte) error {
 	}
 	err := t.Time.UnmarshalJSON(b)
 	if err != nil {
-		return fmt.Errorf("%v: %w", len(b), err)
+		return fmt.Errorf("t.Time.UnmarshalJSON: %w", err)
 	}
 	return nil
 }

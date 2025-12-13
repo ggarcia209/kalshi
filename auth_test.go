@@ -20,12 +20,12 @@ func TestLogout(t *testing.T) {
 
 	c := testClient(t)
 
-	_, err := c.Balance(ctx)
+	_, err := c.GetBalance(ctx)
 	require.NoError(t, err)
 
 	err = c.Logout(ctx)
 	require.NoError(t, err)
 
-	_, err = c.Balance(ctx)
+	_, err = c.GetBalance(ctx)
 	require.Error(t, err)
 }
