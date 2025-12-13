@@ -1,4 +1,4 @@
-module github.com/ammario/kalshi
+module github.com/ggarcia/kalshi
 
 go 1.23.0
 
