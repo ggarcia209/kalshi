@@ -433,6 +433,10 @@ func (c *Client) GetPositions(ctx context.Context, req PositionsRequest) (*Posit
 // https://trading-api.readme.io/reference/getportfoliosettlements.
 type SettlementsRequest struct {
 	CursorRequest
+	Ticker      string `url:"ticker,omitempty"`
+	EventTicker string `url:"event_ticker,omitempty"`
+	MinTs       int64  `url:"min_ts,omitempty"`
+	MaxTs       int64  `url:"max_ts,omitempty"`
 }
 
 // Settlement is described here:
