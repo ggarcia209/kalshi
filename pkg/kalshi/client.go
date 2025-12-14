@@ -16,11 +16,6 @@ import (
 	"golang.org/x/time/rate"
 )
 
-const (
-	APIDemoURL = "https://demo-api.kalshi.co/trade-api/v2/"
-	APIProdURL = "https://trading-api.kalshi.com/trade-api/v2/"
-)
-
 type Cents int
 
 func (c Cents) String() string {
@@ -37,7 +32,8 @@ type Client struct {
 	WriteRatelimit *rate.Limiter
 	ReadRateLimit  *rate.Limiter
 
-	httpClient *http.Client
+	httpClient    *http.Client
+	requestSigner *KeySigner
 }
 
 type CursorResponse struct {
@@ -58,9 +54,8 @@ type request struct {
 	JSONResponse any
 }
 
-func jsonRequestHeaders(
+func (c *Client) jsonRequestHeaders(
 	ctx context.Context,
-	client *http.Client,
 	headers http.Header,
 	method string, reqURL string,
 	jsonReq any, jsonResp any,
@@ -80,9 +75,14 @@ func jsonRequestHeaders(
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
 
-	resp, err := client.Do(req)
+	// sign request
+	if err := c.requestSigner.SignRequestWithRSAKey(req); err != nil {
+		return fmt.Errorf("c.requestSigner.SignRequestWithRSAKey: %w", err)
+	}
+
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("client.Do: %w", err)
+		return fmt.Errorf("c.httpClient.Do: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -95,12 +95,12 @@ func jsonRequestHeaders(
 		return NewHttpError(resp.StatusCode, string(respBodyByt))
 	}
 
-	if client.Jar != nil {
+	if c.httpClient.Jar != nil {
 		u, err := url.Parse(reqURL)
 		if err != nil {
 			return fmt.Errorf("url.Parse: %w", err)
 		}
-		client.Jar.SetCookies(u, resp.Cookies())
+		c.httpClient.Jar.SetCookies(u, resp.Cookies())
 	}
 
 	if jsonResp != nil {
@@ -140,9 +140,8 @@ func (c *Client) request(
 		}
 	}
 
-	if err := jsonRequestHeaders(
+	if err := c.jsonRequestHeaders(
 		ctx,
-		c.httpClient,
 		nil,
 		r.Method,
 		u.String(), r.JSONRequest, r.JSONResponse,
@@ -177,13 +176,15 @@ func basicRateLimit() *rate.Limiter {
 	return rate.NewLimiter(rate.Every(time.Second), 10)
 }
 
-// NewClient creates a new Kalshi client. Login must be called to authenticate the
+// NewClient creates a new Kalshi c.httpClient. Login must be called to authenticate the
 // the client before any other request.
-func NewClient(baseURL string) (*Client, error) {
+func NewClient(baseURL, keyId, keyFilePath, key string, useKeyFile bool) (*Client, error) {
 	jar, err := cookiejar.New(nil)
 	if err != nil {
 		return nil, fmt.Errorf("cookiejar.New: %w", err)
 	}
+
+	requestSigner := NewKeySigner(keyFilePath, key, keyId, useKeyFile)
 
 	c := &Client{
 		httpClient: &http.Client{
@@ -194,6 +195,7 @@ func NewClient(baseURL string) (*Client, error) {
 		// Default to Basic access.
 		WriteRatelimit: basicRateLimit(),
 		ReadRateLimit:  basicRateLimit(),
+		requestSigner:  requestSigner,
 	}
 
 	return c, nil
