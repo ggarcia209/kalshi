@@ -2,12 +2,8 @@ package kalshi
 
 import "context"
 
-//go:generate mockgen -destination ./client_mock.go -package=kalshi . KalshiClientLogic
+//go:generate mockgen -destination ../mocks/client_mock.go -package=mocks . KalshiClientLogic
 type KalshiClientLogic interface {
-	// Auth
-	Login(ctx context.Context, req LoginRequest) (*LoginResponse, error)
-	Logout(ctx context.Context) error
-
 	// exchange
 	ExchangeStatus(ctx context.Context) (*ExchangeStatusResponse, error)
 	ExchangeSchedule(ctx context.Context) (*ExchangeScheduleResponse, error)
