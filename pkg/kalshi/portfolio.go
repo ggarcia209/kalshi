@@ -125,7 +125,7 @@ func (c *Client) CreateOrder(ctx context.Context, req CreateOrderRequest) (*Orde
 		Endpoint:     "portfolio/orders",
 		JSONRequest:  req,
 		JSONResponse: &resp,
-	}); err != nil {
+	}, authenticated); err != nil {
 		return nil, fmt.Errorf("c.request: %w", err)
 	}
 
@@ -194,7 +194,7 @@ func (c *Client) GetOrders(ctx context.Context, req OrdersRequest) (*OrdersRespo
 		Endpoint:     "portfolio/orders",
 		QueryParams:  req,
 		JSONResponse: resp,
-	}); err != nil {
+	}, authenticated); err != nil {
 		return nil, fmt.Errorf("c.request: %w", err)
 	}
 	return resp, nil
@@ -210,7 +210,7 @@ func (c *Client) GetBalance(ctx context.Context) (Cents, error) {
 		Method:       "GET",
 		Endpoint:     "portfolio/balance",
 		JSONResponse: &resp,
-	}); err != nil {
+	}, authenticated); err != nil {
 		return 0, fmt.Errorf("c.request: %w", err)
 	}
 	return resp.Balance, nil
@@ -257,7 +257,7 @@ func (c *Client) GetFills(ctx context.Context, req FillsRequest) (*FillsResponse
 		Endpoint:     "portfolio/fills",
 		QueryParams:  req,
 		JSONResponse: &resp,
-	})
+	}, authenticated)
 	if err != nil {
 		return nil, err
 	}
@@ -274,7 +274,7 @@ func (c *Client) GetOrder(ctx context.Context, orderID string) (*Order, error) {
 		Method:       "GET",
 		Endpoint:     "portfolio/orders/" + orderID,
 		JSONResponse: &resp,
-	}); err != nil {
+	}, authenticated); err != nil {
 		return nil, fmt.Errorf("c.request: %w", err)
 	}
 	return &resp.Order, nil
@@ -290,7 +290,7 @@ func (c *Client) CancelOrder(ctx context.Context, orderID string) (*Order, error
 		Method:       "DELETE",
 		Endpoint:     "portfolio/orders/" + orderID,
 		JSONResponse: &resp,
-	}); err != nil {
+	}, authenticated); err != nil {
 		return nil, fmt.Errorf("c.request: %w", err)
 	}
 	return &resp.Order, nil
@@ -314,7 +314,7 @@ func (c *Client) DecreaseOrder(ctx context.Context, orderID string, req Decrease
 		Endpoint:     "portfolio/orders/" + orderID + "/decrease",
 		JSONRequest:  req,
 		JSONResponse: &resp,
-	})
+	}, authenticated)
 	if err != nil {
 		return nil, err
 	}
@@ -423,7 +423,7 @@ func (c *Client) GetPositions(ctx context.Context, req PositionsRequest) (*Posit
 		Endpoint:     "portfolio/positions",
 		QueryParams:  req,
 		JSONResponse: &resp,
-	}); err != nil {
+	}, authenticated); err != nil {
 		return nil, fmt.Errorf("c.request: %w", err)
 	}
 	return &resp, nil
@@ -468,7 +468,7 @@ func (c *Client) GetSettlements(ctx context.Context, req SettlementsRequest) (*S
 		Endpoint:     "portfolio/settlements",
 		QueryParams:  req,
 		JSONResponse: &resp,
-	}); err != nil {
+	}, authenticated); err != nil {
 		return nil, fmt.Errorf("c.request: %w", err)
 	}
 	return &resp, nil

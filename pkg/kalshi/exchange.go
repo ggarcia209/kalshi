@@ -58,7 +58,7 @@ func (c *Client) ExchangeStatus(ctx context.Context) (*ExchangeStatusResponse, e
 		Method:       "GET",
 		Endpoint:     "exchange/status",
 		JSONResponse: &resp,
-	})
+	}, unauthenticated)
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +73,7 @@ func (c *Client) ExchangeSchedule(ctx context.Context) (*ExchangeScheduleRespons
 		Method:       "GET",
 		Endpoint:     "exchange/schedule",
 		JSONResponse: &resp,
-	})
+	}, unauthenticated)
 	if err != nil {
 		return nil, err
 	}
