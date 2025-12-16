@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -22,6 +23,11 @@ func (c Cents) String() string {
 	dollars := float32(c) / 100
 	return fmt.Sprintf("$%.2f", dollars)
 }
+
+const ( // denotes endpoints requiring authorization
+	authenticated   = true
+	unauthenticated = false
+)
 
 // Client must be instantiated via New.
 type Client struct {
@@ -59,25 +65,37 @@ func (c *Client) jsonRequestHeaders(
 	headers http.Header,
 	method string, reqURL string,
 	jsonReq any, jsonResp any,
+	auth bool,
 ) error {
-	reqBodyByt, err := json.Marshal(jsonReq)
-	if err != nil {
-		return fmt.Errorf("json.Marshal: %w", err)
+	// get body if non-nil
+	var body io.Reader = nil
+	if jsonReq != nil {
+		log.Printf("encoding json body")
+		reqBodyByt, err := json.Marshal(jsonReq)
+		if err != nil {
+			return fmt.Errorf("json.Marshal: %w", err)
+		}
+		body = bytes.NewReader(reqBodyByt)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, method, reqURL, bytes.NewReader(reqBodyByt))
+	req, err := http.NewRequestWithContext(ctx, method, reqURL, body)
 	if err != nil {
 		return fmt.Errorf("http.NewRequestWithContext: %w", err)
 	}
 	if headers != nil {
 		req.Header = headers
 	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "application/json")
+
+	if method != http.MethodGet {
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Accept", "application/json")
+	}
 
 	// sign request
-	if err := c.requestSigner.SignRequestWithRSAKey(req); err != nil {
-		return fmt.Errorf("c.requestSigner.SignRequestWithRSAKey: %w", err)
+	if auth {
+		if err := c.requestSigner.SignRequestWithRSAKey(req); err != nil {
+			return fmt.Errorf("c.requestSigner.SignRequestWithRSAKey: %w", err)
+		}
 	}
 
 	resp, err := c.httpClient.Do(req)
@@ -113,7 +131,7 @@ func (c *Client) jsonRequestHeaders(
 }
 
 func (c *Client) request(
-	ctx context.Context, r request,
+	ctx context.Context, r request, auth bool,
 ) error {
 	u, err := url.Parse(c.BaseURL + r.Endpoint)
 	if err != nil {
@@ -145,6 +163,7 @@ func (c *Client) request(
 		nil,
 		r.Method,
 		u.String(), r.JSONRequest, r.JSONResponse,
+		auth,
 	); err != nil {
 		return fmt.Errorf("jsonRequestHeaders: %w", err)
 	}

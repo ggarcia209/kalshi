@@ -46,7 +46,7 @@ func (c *Client) Events(ctx context.Context, req EventsRequest) (*EventsResponse
 		QueryParams:  req,
 		JSONRequest:  nil,
 		JSONResponse: &resp,
-	})
+	}, unauthenticated)
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +70,7 @@ func (c *Client) Event(ctx context.Context, event string) (*EventResponse, error
 		Method:       "GET",
 		Endpoint:     "events/" + event,
 		JSONResponse: &resp,
-	})
+	}, unauthenticated)
 	if err != nil {
 		return nil, err
 	}
@@ -174,7 +174,7 @@ func (c *Client) Markets(
 		QueryParams:  req,
 		JSONRequest:  nil,
 		JSONResponse: &resp,
-	}); err != nil {
+	}, unauthenticated); err != nil {
 		return nil, fmt.Errorf("c.request: %w", err)
 	}
 
@@ -222,7 +222,7 @@ func (c *Client) GetTrades(
 		Endpoint:     "markets/trades",
 		QueryParams:  req,
 		JSONResponse: &resp,
-	}); err != nil {
+	}, unauthenticated); err != nil {
 		return nil, fmt.Errorf("c.request: %w", err)
 	}
 
@@ -239,7 +239,7 @@ func (c *Client) Market(ctx context.Context, ticker string) (*Market, error) {
 		Method:       "GET",
 		Endpoint:     fmt.Sprintf("markets/%s", ticker),
 		JSONResponse: &resp,
-	})
+	}, unauthenticated)
 	if err != nil {
 		return nil, err
 	}
@@ -287,7 +287,7 @@ func (c *Client) MarketHistory(
 		Endpoint:     fmt.Sprintf("markets/%s/history", ticker),
 		QueryParams:  req,
 		JSONResponse: &resp,
-	})
+	}, unauthenticated)
 	if err != nil {
 		return nil, err
 	}
@@ -305,7 +305,7 @@ func (c *Client) MarketOrderBook(ctx context.Context, ticker string) (*OrderBook
 		Method:       "GET",
 		Endpoint:     fmt.Sprintf("markets/%s/orderbook/?depth=100", ticker),
 		JSONResponse: &resp,
-	})
+	}, unauthenticated)
 	if err != nil {
 		return nil, err
 	}
@@ -330,7 +330,7 @@ func (c *Client) Series(ctx context.Context, seriesTicker string) (*Series, erro
 		Method:       "GET",
 		Endpoint:     fmt.Sprintf("series/%s", seriesTicker),
 		JSONResponse: &resp,
-	}); err != nil {
+	}, unauthenticated); err != nil {
 		return nil, fmt.Errorf("c.request: %w", err)
 	}
 	return &resp.Series, nil

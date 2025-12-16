@@ -6,6 +6,9 @@ import (
 	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/x509"
+	"encoding/base64"
+	"encoding/pem"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -43,22 +46,29 @@ func NewKeySigner(filepath, key, keyId string, useFile bool) *KeySigner {
 
 func (k *KeySigner) SignRequestWithRSAKey(req *http.Request) error {
 	// get key
-	var keyBb []byte
+	var decoded *pem.Block
 	if k.useFile {
 		// open key file
 		f, err := os.Open(k.filepath)
 		if err != nil {
 			return fmt.Errorf("os.Open: %w", err)
 		}
-		keyBb, err = io.ReadAll(f)
+		keyBb, err := io.ReadAll(f)
 		if err != nil {
 			return fmt.Errorf("io.ReadAll: %w", err)
 		}
+		decoded, _ = pem.Decode(keyBb)
+		if decoded == nil {
+			return errors.New("pem.Decode: nil block")
+		}
 	} else { // use key from env
-		keyBb = []byte(k.key)
+		decoded, _ = pem.Decode([]byte(k.key))
+		if decoded == nil {
+			return errors.New("pem.Decode: nil block")
+		}
 	}
 
-	privateKey, err := x509.ParsePKCS1PrivateKey(keyBb)
+	privateKey, err := x509.ParsePKCS1PrivateKey(decoded.Bytes)
 	if err != nil {
 		return fmt.Errorf("x509.ParsePKCS1PrivateKey: %w", err)
 	}
@@ -66,7 +76,7 @@ func (k *KeySigner) SignRequestWithRSAKey(req *http.Request) error {
 	// get hash
 	path := req.URL.Path
 	method := req.Method
-	ts := strconv.FormatInt(time.Now().Unix(), 10)
+	ts := strconv.FormatInt(time.Now().UnixMilli(), 10)
 
 	toSign := ts + method + path
 	msgHash := sha256.New()
@@ -74,23 +84,16 @@ func (k *KeySigner) SignRequestWithRSAKey(req *http.Request) error {
 		return fmt.Errorf("msgHash.Write: %w", err)
 	}
 
-	// get hash of request body
-	// bb, err := io.ReadAll(req.Body)
-	// if err != nil {
-	// 	return "", fmt.Errorf("io.ReadAll: %w", err)
-	// }
-	// req.Body.Close()
-	// req.Body = io.NopCloser(bytes.NewBuffer(bb))
-
 	// sign key
-	signature, err := rsa.SignPKCS1v15(rand.Reader, privateKey, crypto.SHA256, msgHash.Sum(nil))
+	signature, err := rsa.SignPSS(rand.Reader, privateKey, crypto.SHA256, msgHash.Sum(nil), nil)
 	if err != nil {
 		return fmt.Errorf("rsa.SignPKCS1v15: %w", err)
 	}
+	encodedSignature := base64.StdEncoding.EncodeToString(signature)
 
 	// set auth headers on request
 	req.Header.Add(HeaderAccessKey, k.keyId)
-	req.Header.Add(HeaderAccessSignature, string(signature))
+	req.Header.Add(HeaderAccessSignature, encodedSignature)
 	req.Header.Add(HeaderAccessTimestamp, ts)
 
 	return nil
