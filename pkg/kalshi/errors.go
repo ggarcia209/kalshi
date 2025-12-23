@@ -7,8 +7,7 @@ import (
 )
 
 var (
-	ErrReadLimitExceeded  = errors.New("read limit exceeded")
-	ErrWriteLimitExceeded = errors.New("write limit exceeded")
+	ErrRateLimitExceeded = errors.New("rate limit exceeded")
 )
 
 type HttpError struct {

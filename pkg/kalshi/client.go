@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -35,8 +34,7 @@ type Client struct {
 	BaseURL string
 
 	// See https://trading-api.readme.io/reference/tiers-and-rate-limits.
-	WriteRatelimit *rate.Limiter
-	ReadRateLimit  *rate.Limiter
+	RateLimit *rate.Limiter
 
 	httpClient    *http.Client
 	requestSigner *KeySigner
@@ -70,7 +68,6 @@ func (c *Client) jsonRequestHeaders(
 	// get body if non-nil
 	var body io.Reader = nil
 	if jsonReq != nil {
-		log.Printf("encoding json body")
 		reqBodyByt, err := json.Marshal(jsonReq)
 		if err != nil {
 			return fmt.Errorf("json.Marshal: %w", err)
@@ -148,14 +145,8 @@ func (c *Client) request(
 
 	// Do not block via Wait! Trades have to be
 	// fast to be meaningful!
-	if r.Method == "GET" {
-		if !c.ReadRateLimit.Allow() {
-			return ErrReadLimitExceeded
-		}
-	} else {
-		if !c.WriteRatelimit.Allow() {
-			return ErrWriteLimitExceeded
-		}
+	if !c.RateLimit.Allow() {
+		return ErrRateLimitExceeded
 	}
 
 	if err := c.jsonRequestHeaders(
@@ -191,13 +182,13 @@ func (t Timestamp) MarshalJSON() ([]byte, error) {
 	return []byte(strconv.Itoa(int(time.Time(t).UTC().Unix()))), nil
 }
 
-func basicRateLimit() *rate.Limiter {
-	return rate.NewLimiter(rate.Every(time.Second), 10)
+func newRateLimit(rps int) *rate.Limiter {
+	return rate.NewLimiter(rate.Every(time.Second), rps)
 }
 
 // NewClient creates a new Kalshi c.httpClient. Login must be called to authenticate the
 // the client before any other request.
-func NewClient(baseURL, keyId, keyFilePath, key string, useKeyFile bool) (*Client, error) {
+func NewClient(baseURL, keyId, keyFilePath, key string, useKeyFile bool, rps int) (*Client, error) {
 	jar, err := cookiejar.New(nil)
 	if err != nil {
 		return nil, fmt.Errorf("cookiejar.New: %w", err)
@@ -209,12 +200,9 @@ func NewClient(baseURL, keyId, keyFilePath, key string, useKeyFile bool) (*Clien
 		httpClient: &http.Client{
 			Jar: jar,
 		},
-		BaseURL: baseURL,
-		// See https://trading-api.readme.io/reference/tiers-and-rate-limits.
-		// Default to Basic access.
-		WriteRatelimit: basicRateLimit(),
-		ReadRateLimit:  basicRateLimit(),
-		requestSigner:  requestSigner,
+		BaseURL:       baseURL,
+		RateLimit:     newRateLimit(rps),
+		requestSigner: requestSigner,
 	}
 
 	return c, nil

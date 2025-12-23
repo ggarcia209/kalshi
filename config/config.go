@@ -10,11 +10,13 @@ const (
 	KalshiApiKey             = "KALSHI_API_KEY"
 	KalshiApiKeyFile         = "KALSHI_API_KEY_FILE"
 	KalshiApiKeyUseFile      = "KALSHI_API_KEY_USE_FILE"
+	KalshiRequestsPerSecond  = "KALSHI_REQUESTS_PER_SECOND"
 )
 
 func init() {
 	viper.SetDefault(KalshiLiveTradingHttpUrl, "https://api.elections.kalshi.com/trade-api/v2")
 	viper.SetDefault(KalshiDemoTradingHttpUrl, "https://demo-api.kalshi.co/trade-api/v2")
 	viper.SetDefault(KalshiApiKeyUseFile, false)
+	viper.SetDefault(KalshiRequestsPerSecond, 20)
 	viper.AutomaticEnv()
 }
