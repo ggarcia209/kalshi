@@ -183,7 +183,7 @@ func (t Timestamp) MarshalJSON() ([]byte, error) {
 }
 
 func newRateLimit(rps int) *rate.Limiter {
-	return rate.NewLimiter(rate.Every(time.Second), rps)
+	return rate.NewLimiter(rate.Every(time.Second/time.Duration(rps)), rps)
 }
 
 // NewClient creates a new Kalshi c.httpClient. Login must be called to authenticate the
