@@ -2,6 +2,7 @@ package kalshi
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -102,4 +103,42 @@ func TestSeries(t *testing.T) {
 	resp, err := client.Series(ctx, "NASDAQ100")
 	require.NoError(t, err)
 	require.NotEmpty(t, resp)
+}
+
+// go test -v -tags=integration --run TestIntegrationGetSettlements
+func TestIntegrationGetMarkets(t *testing.T) {
+	var tests = []struct {
+		name    string
+		req     MarketsRequest
+		wantErr error
+	}{
+		{
+			name: "success",
+			req: MarketsRequest{
+				SeriesTicker: "KXBTC15M",
+				Status:       "open",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cli := testClient(t)
+
+			settlements, err := cli.Markets(context.Background(), tt.req)
+			if err != nil {
+				t.Errorf("cli.GetSettlements: %v", err)
+				return
+			}
+
+			js, err := json.MarshalIndent(settlements, "", "\t")
+			if err != nil {
+				t.Errorf("test %s: json.MarshalIndent: %v", tt.name, err)
+				return
+			}
+			_ = js
+
+			t.Logf("test %s settlements:\n%s", tt.name, js)
+		})
+	}
 }
